@@ -1,0 +1,553 @@
+<html>
+<head>
+	<style type="text/css">
+	body{
+		margin:0;
+		padding:0;
+		width:100%;
+		font-family: Arial, Sans-Serif;
+	}
+
+	#XportTool {
+		position:fixed;
+		top:50px;
+		left:50px;
+		width: 400px;
+		height: 400px;
+	
+
+		background: #FFFFFF;
+		z-index:999999;
+		display: none;
+		border:1px solid #CCCCCC;
+		box-shadow: 10px 10px 5px #CCCCCC;
+	}
+
+	#XportTool span{
+		position: absolute;
+		left:0px;
+		height:20px;
+		width: auto;
+		top:0px;
+		color:#FF0000;
+		cursor: pointer;
+		background: #FFFFFF;
+	}
+
+	#XportTool #textXportTool{
+		position: absolute;
+		top:20px;
+		left:0px;
+		width: 400px;
+		overflow: auto;
+		bottom:0px;
+		background: #FFFFFF;
+		border:1px solid #EEEEEE;
+		
+	}
+
+	#toolbar {
+		position: absolute;
+		top:0px;
+		height:30px;
+		left:0px;
+		right:0px;
+		border-bottom:1px solid #000000;
+		z-index:1;
+		background:#000000;
+		color:#FFFFFF;
+	}
+
+	#dataEntry {
+		position: absolute;
+		top:30px;
+		bottom:30px;
+		left:0px;
+		right:0px;
+		overflow: auto;
+		z-index:1;
+	}
+
+	#footer_info {
+		position: absolute;
+		bottom:0px;
+		left:0px;
+		right:0px;
+		height:30px;
+		overflow: auto;
+		z-index:1;
+	}
+
+	#toolbar ul {
+
+		position: absolute;
+		top:5px;
+		width:100%;
+		list-style-type: none;
+		margin: 0 auto;
+		padding: 0;
+		overflow: hidden;
+		font-size:16px;
+	}
+
+	#toolbar li {
+		display: inline;
+		text-align: center;
+		margin: 0 10px 0;
+	}
+
+	table {
+		border:1px solid #101010;
+		border-collapse: collapse;
+		color:#505050;
+		width:100%;
+	}
+
+	table .black{
+		background:#000000;
+	}
+
+	td {
+		padding:0;
+		margin:0;
+		text-align: center;
+		width:150px;
+	}
+	input {
+		border:1px solid #CCCCCC;
+		display: table-cell;
+		width:150px;
+	}
+
+	.pointer {
+		cursor: pointer;
+		color:#CCCCCC;
+	}
+
+	.pointer:hover {
+		color:#FFFFFF;
+	}
+	</style>
+
+	<script languaje="JavaScript">
+	"use strict";
+	/********************************************************************************
+		Errorer.
+		Copyright (C) 2017 <davidiglesanchez@gmail.com>
+
+		This program is free software: you can redistribute it and/or modify
+		it under the terms of the GNU General Public License as published by
+		the Free Software Foundation, either version 3 of the License, or
+		(at your option) any later version.
+
+		This program is distributed in the hope that it will be useful,
+		but WITHOUT ANY WARRANTY; without even the implied warranty of
+		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+		GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License
+		along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+	**********************************************************************************/
+	var INITIAL_ROWS = 3;
+	var tableElement;
+	var table_total_rows=0;
+
+	var xPos=0;
+	var yPos=0;
+
+	var VALORES = new Array(300);
+
+	var defaultError = 0;
+	var mValue = 1.0;
+
+	var DEBUG = true;
+
+	var AllowedKeyCodes = [8, 198, 190, 9, 189, 122, 27, 116];
+	var AllowedKeys = ["Backspace", ",", "."];
+
+	//Tabla por defecto para latex
+	var LatexTEMPLATE = {
+		inicio_a : "\\begin{tabular}{|c|c|c|}\n\\hline\n\$x_i\$ \& \$y_i\$ \& \$\\Delta y_i\$\\\\\n\\hline\n\\hline\n",
+		fin	 : "\\hline\n\\end{tabular}",
+
+		inicio_b_a : "\\begin{tabular}{|c|c|c|c|c|c|}\n\\hline\n\t\$x_i^m\$\t\&\t\$x_i^{2m}\$\t\&\t",
+		inicio_b_b : "\$x_iy_i^m\$\t\&\t\$|x_i^m|\$\t\&\t\$|x_i^m|\\Delta y_i\$\\\\\n \\hline\n\\hline\n"
+			};
+
+
+
+	window.onload = function(){
+		tableElement = document.getElementById("main_table");
+		for(var i = 0; i<INITIAL_ROWS; i++){
+			addRow();
+		}
+		
+		document.getElementById("c_0_r_0").select();
+
+		document.body.onkeydown = function(e){
+// ---38-
+// 37-40-39
+
+		var teclaAdmitida = false;
+		var index;
+		for(index in AllowedKeyCodes){
+
+			if(e.keyCode == AllowedKeyCodes[index]){teclaAdmitida = true; break;}
+		}
+		if(!teclaAdmitida){
+			for(index in AllowedKeys){
+				if(e.key == AllowedKeys[index]){teclaAdmitida = true; break;}
+			}
+		}
+			if(!isNaN(e.key) || teclaAdmitida){
+
+			}else{
+				switch(e.keyCode){
+					case 37:
+						irIzquierda();
+					break;
+					case 38:
+						irArriba();
+					break;
+					case 39:
+						irDerecha();
+					break;
+					case 40:
+						irAbajo();
+					break;
+					case 69:
+						setDefaultError();
+					break;
+
+					case 65:
+						ajuste();
+					break;
+
+					case 77:
+						setExponent();
+					break;
+
+					case 13:
+						computeValues();
+					break;
+
+					default:
+						if(DEBUG){console.log(e.keyCode);}
+					break;
+				}
+				e.preventDefault();
+			}
+		}
+	}
+	var addRow = function(){
+		if(tableElement){
+			var toInner = "<tr>";
+
+			var row = tableElement.insertRow(table_total_rows+1);
+			row.setAttribute("id","row_"+(table_total_rows+1));
+			var cell1 = row.insertCell(0);
+			var cell2 = row.insertCell(1);
+			var cell3 = row.insertCell(2);
+			cell1.innerHTML = "<td><input type=\"text\" id=\"c_0_r_"+table_total_rows+"\" onfocus=\"selectiona(this.id)\" oninput=\"textChanged(this)\"></input>";
+			cell2.innerHTML = "<td><input type=\"text\" id=\"c_1_r_"+table_total_rows+"\" onfocus=\"selectiona(this.id)\" oninput=\"textChanged(this)\"></input>";
+			cell3.innerHTML = "<td><input type=\"text\" id=\"c_2_r_"+table_total_rows+"\" onfocus=\"selectiona(this.id)\" oninput=\"textChanged(this)\"></input>";
+
+			row.insertCell(3).setAttribute("class","black");
+			for(var i = 4; i<=8; i++){
+				row.insertCell(i).setAttribute("id","fila_"+(table_total_rows)+"_columna_"+i);
+			}
+
+
+
+
+			//tableElement.innerHTML += toInner;
+			table_total_rows++;
+		}
+	}
+
+
+	function irIzquierda(){
+		if(xPos>0 && xPos<=2){
+			xPos--;
+		}
+		updatePosition();
+	}
+
+	function irArriba(){
+		if(yPos>0 && yPos<=table_total_rows){
+			yPos--;
+		}
+		updatePosition();
+	}
+
+	function irDerecha(){
+		if(xPos>=0 && xPos<2){
+			xPos++;
+		}
+		updatePosition();
+	}
+
+	function irAbajo(){
+		if(yPos>=0 && yPos<table_total_rows-1){
+			yPos++;
+		}else{//Añadir una nueva
+			addRow();
+			yPos++;
+		}
+		updatePosition();
+	}
+
+	function updatePosition(){
+		if(DEBUG){console.log("c_"+xPos+"_r_"+yPos);}
+		document.getElementById("c_"+xPos+"_r_"+yPos).select();
+	}
+
+	function selectiona(id){
+		var k = id.replace("c_", "").replace("_r_", "X").split("X");
+		xPos = parseInt(k[0]);
+		yPos = parseInt(k[1]);
+	}
+
+	function textChanged(these){
+		/*var k = these.id.replace("c_", "").replace("_r_", "X").split("X");
+		xPos = parseInt(k[0]);
+		yPos = parseInt(k[1]);
+		VALORES[xPos+3*yPos]=these.value;*/
+	}
+
+	var setDefaultError = function(){
+		if(document.getElementById("c_2_r_0").value && document.getElementById("c_2_r_0").value!==undefined && document.getElementById("c_2_r_0").value!="" &&
+		defaultError == 0){
+			defaultError=document.getElementById("c_2_r_0").value;
+		}
+		fillDefaultError();
+	}
+
+	var fillDefaultError = function(){
+		for(var i = 0; i<table_total_rows; i++){
+			document.getElementById("c_2_r_"+i).value = defaultError;
+		}
+	}
+
+
+	var addValueToRow = function(columna, fila, valor){
+		if(tableElement){
+			if(DEBUG){console.log("fila_"+fila+"_columna_"+columna);}
+			document.getElementById("fila_"+fila+"_columna_"+columna).innerHTML = valor;
+		}
+
+	}
+
+	var computeValues = function(){
+
+		var x_i, y_i, dy_i, x_iUm;
+		for(var i = 0; i<table_total_rows; i++){
+			x_i = parseFloat(parseNumber(document.getElementById("c_0_r_"+i).value)); //x_i values
+			y_i = parseFloat(parseNumber(document.getElementById("c_1_r_"+i).value)); //y_i values
+			dy_i = parseFloat(parseNumber(document.getElementById("c_2_r_"+i).value)); //(Delta)y_i values
+
+			x_iUm = Math.pow(x_i, mValue);
+
+			if(isNaN(x_i) || isNaN(y_i) || isNaN(dy_i)){
+			}else{
+				addValueToRow(4,i, redondear(x_iUm)	); // x_i^m values
+				addValueToRow(5,i, redondear(Math.abs(x_iUm)) ); // abs(x_i^m) values
+				addValueToRow(6,i, redondear(x_iUm*x_iUm) ); // x_i^{2m} values
+				addValueToRow(7,i, redondear(x_i*Math.pow(y_i,mValue)) ); // x_i*y_i^m values
+				addValueToRow(8,i, redondear(Math.abs(x_iUm)*dy_i) ); // abs(x_i^m)*(Delta)y_i values
+			}
+		}
+
+	}
+
+	function setExponent(){
+		mValue=parseFloat(prompt("Valor para el exponente (por defecto, m=1)"));
+		document.getElementById("footer_info_exp").innerHTML = mValue;
+		document.getElementById("footer_info_ajuste").innerHTML = "ax<sup>"+mValue+"</sup>";
+		computeValues(); // Computar los valores después de cambiar el exponente...
+	}
+
+	function setYError(){
+		defaultError=parseFloat(prompt("Error para la y:"));
+		fillDefaultError();
+		computeValues(); // Computar los valores después de cambiar el error en y...
+	}
+
+	function createLatexA(){
+		var TEXTO_COMPLETO = LatexTEMPLATE.inicio_a;
+		var x_i, y_i, dy_i;
+
+		for(var i = 0; i<table_total_rows; i++){
+			x_i = parseFloat(document.getElementById("c_0_r_"+i).value); //x_i values
+			y_i = parseFloat(document.getElementById("c_1_r_"+i).value); //y_i values
+			dy_i = parseFloat(document.getElementById("c_2_r_"+i).value); //(Delta)y_i values
+			if(isNaN(x_i)){ x_i = "";}
+			if(isNaN(y_i)){ y_i = "";}
+			if(isNaN(dy_i)){ dy_i = "";}
+			TEXTO_COMPLETO+=x_i+"\t\&\r"+y_i+"\t\&\t"+dy_i+"\\\\ \n";
+		}
+		TEXTO_COMPLETO+=LatexTEMPLATE.fin;
+		writeXportTool(TEXTO_COMPLETO);
+	}
+
+	function createLatexB(){
+		var TEXTO_COMPLETO = LatexTEMPLATE.inicio_b_a;
+		TEXTO_COMPLETO += LatexTEMPLATE.inicio_b_b;
+		var a, b, c, d, e, f;
+
+		for(var i = 0; i<table_total_rows; i++){
+			for(var b = 4; b<=8; b++){ 
+				a = parseFloat(document.getElementById("fila_"+i+"_columna_"+b).innerHTML);
+				if(isNaN(a)){a = "";}
+				TEXTO_COMPLETO+="\t"+a+"\t";
+				if(b<8){TEXTO_COMPLETO+="\&";}
+			}
+			TEXTO_COMPLETO+="\\\\\n";
+			
+		}
+		TEXTO_COMPLETO+=LatexTEMPLATE.fin;
+		writeXportTool(TEXTO_COMPLETO);
+	}
+
+	function closeXportTool(){
+		document.getElementById("XportTool").style.display="none";
+	}
+
+	function writeXportTool(text){
+
+		document.getElementById("textXportTool").innerHTML=text.replace(/\n/g, "<br>");
+		document.getElementById("XportTool").style.display="block";
+	}
+
+	var redondear = function(numero){
+		return parseFloat(Math.round(numero*10000000)/10000000);
+	}
+
+	var ajuste = function(){
+		computeValues(); // Computar los valores antes de ajustar...
+
+		var TEXTO_COMPLETO = "=== RESULTADO DEL AJUSTE ===\n";
+		var a = 0;
+		var a_num = 0;
+		var denom = 0;
+		var da = 0;
+		var da_num = 0;
+
+		var c, d, e;
+		for(var i = 0; i<table_total_rows; i++){
+			c = parseFloat(document.getElementById("fila_"+i+"_columna_6").innerHTML);
+			d = parseFloat(document.getElementById("fila_"+i+"_columna_7").innerHTML);
+			e = parseFloat(document.getElementById("fila_"+i+"_columna_8").innerHTML);
+			if(!isNaN(c) && !isNaN(d) && !isNaN(e)){
+			a_num+=d;
+			denom+=c;
+			da_num+=e;
+			}
+		}
+
+		a = a_num/denom;
+		da = da_num/denom;
+		document.getElementById("footer_info_a").innerHTML = a;
+		document.getElementById("footer_info_da").innerHTML = da;
+
+		TEXTO_COMPLETO+="a = "+redondear(a)+"\n";
+		TEXTO_COMPLETO+="\&Delta;a = "+da+"\n";
+		writeXportTool(TEXTO_COMPLETO);
+	}
+
+
+
+
+	var rellenar = function(a){
+		var desde = redondear(parseFloat(parseNumber(prompt("Valor inicial:"))));
+		var hasta = redondear(parseFloat(parseNumber(prompt("Valor final:"))));
+		var paso = redondear(parseFloat(parseNumber(prompt("Incremento:"))));
+		var x = 0;
+		if(desde>=hasta){ alert("Eso no posible es:/ Valor inicial mayor al final..."); return 0;}
+		for(var i = desde; i<=hasta; i+=paso){
+			if(x>=table_total_rows){
+				addRow();
+			}
+			document.getElementById("c_"+a+"_r_"+x).value=redondear(i);
+			x++;
+		}
+	}
+
+	var parseNumber = function(number){
+		return number.replace(",", ".");
+	}
+
+	var aiudaa = function(){
+		var TEXTO_COMPLETO = "=== AYUDA! ===\n"+
+		"Para introducir valores, selecione una fila y una columna e introduzca el valor. "+
+		"Puede moverse a trav&eacute;s de la tabla utilizando las flechas. "+
+		"Las filas se a&ntilde;aden autom&aacute;ticamente. "+
+		"Para generar los valores de las columnas de la derecha, pulse ENTER o clicar en AJUSTE.\n\n"+
+		"=== CAMBIAR PAR&Aacute;METROS ===\n"+
+		"Para cambiar el valor del exponente (llamado m), pulsar CAMBIAR M en el men&uacute;."+
+		"Para cambiar el valor del error en y, pulsar [Error en y]."+
+		"\n\n"+
+		"=== INFORMACI&Oacute;N SOBRE RELLENO ===\n"+
+		"Si los valores de x<sub>i</sub>, y<sub>i</sub> o &Delta;y<sub>i</sub> son una serie "+
+		"(por ejemplo, los valores de x<sub>i</sub> son 2 4 6 8 10 ...), pulse RELLENAR: [x<sub>i</sub>, y<sub>i</sub>, &Delta;y<sub>i</sub>] "+
+		"seg&uacute;n corresponda e introduzca el valor inicial (en el ejemplo, el 2), el valor final, y el incremento"+
+		"(en el ejemplo, 2).";
+		writeXportTool(TEXTO_COMPLETO);
+	}
+
+	window.onbeforeunload=function(){
+		if(!DEBUG){
+			return "Desea salir?";
+		}
+	}
+	</script>
+</head>
+<body ">
+<div id="XportTool">
+	<div id="textXportTool"></div>
+	<span onClick="closeXportTool();">Cerrar</span>
+</div>
+
+<div id="toolBar">
+	<ul>
+		<li><span onClick="setExponent();" class="pointer">Cambiar m</span>
+		<li><span onClick="setYError();" class="pointer">Error en y</span>
+
+		<li><span>Rellenar:</span>[
+			<span onClick="rellenar(0);" class="pointer">x_i</span>,
+			<span onClick="rellenar(1);" class="pointer">y_i</span>,
+			<span onClick="rellenar(2);" class="pointer">&Delta;y_i</span>]
+		<li><span onClick="ajuste();" class="pointer">Ajuste</span>
+
+		<li><span>Exportar a LaTeX:</span>
+			<span onClick="createLatexA();" class="pointer">Datos</span> -
+			<span onClick="createLatexB();" class="pointer">Errores</span>
+		<li><span onClick="aiudaa();" class="pointer">Ayuda</span>
+	</ul>
+</div>
+<div id="dataEntry">
+	<table border="1" cellpadding="0" cellspacing="0" id="main_table">
+		<tr>
+			<td>x<sub>i</sub>
+			<td>y<sub>i</sub>
+			<td>&Delta;y<sub>i</sub>
+			<td>
+			<td>x<sub>i</sub><sup>m</sup>
+			<td>|x<sub>i</sub><sup>m</sup>|
+			<td>x<sub>i</sub><sup>2m</sup>
+			<td>x<sub>i</sub>y<sub>i</sub><sup>m</sup>
+			<td>|x<sub>i</sub><sup>m</sup>|&Delta;y<sub>i</sub>
+		</tr>
+
+		<tr>
+
+		</tr>
+
+	</table>
+</div>
+
+<div id="footer_info">Exponente: m=<span id="footer_info_exp">1</span>,
+Ajuste (y=<span id="footer_info_ajuste">ax<sup>1</sup></span>): [a = <span id="footer_info_a">-</span>, &Delta;a = <span id="footer_info_da">-</span>]</div>
+</body>
+</html>
