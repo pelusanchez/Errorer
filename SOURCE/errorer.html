@@ -9,13 +9,13 @@
 	}
 
 	#XportTool {
-		position:fixed;
-		top:50px;
-		left:50px;
-		width: 400px;
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		width: 600px;
 		height: 400px;
-	
-
+		margin-top: -200px;
+		margin-left: -300px;
 		background: #FFFFFF;
 		z-index:999999;
 		display: none;
@@ -23,7 +23,7 @@
 		box-shadow: 10px 10px 5px #CCCCCC;
 	}
 
-	#XportTool span{
+	#XportTool .close{
 		position: absolute;
 		left:0px;
 		height:20px;
@@ -38,7 +38,7 @@
 		position: absolute;
 		top:20px;
 		left:0px;
-		width: 400px;
+		right:0px;
 		overflow: auto;
 		bottom:0px;
 		background: #FFFFFF;
@@ -113,6 +113,19 @@
 		text-align: center;
 		width:150px;
 	}
+
+	tr {
+		background:#FFFFFF;
+	}
+
+	tr:hover {
+		background:#EEEEEE;
+	}
+
+	input[type=text] {
+		background:rgba(0,0,0,0);
+	}
+
 	input {
 		border:1px solid #CCCCCC;
 		display: table-cell;
@@ -127,6 +140,15 @@
 	.pointer:hover {
 		color:#FFFFFF;
 	}
+
+	.mini_title {
+		color:#EE0000;
+	}
+
+	.text_center {
+		text-align: center;
+	}
+
 	</style>
 
 	<script languaje="JavaScript">
@@ -172,7 +194,7 @@
 		fin	 : "\\hline\n\\end{tabular}",
 
 		inicio_b_a : "\\begin{tabular}{|c|c|c|c|c|c|}\n\\hline\n\t\$x_i^m\$\t\&\t\$x_i^{2m}\$\t\&\t",
-		inicio_b_b : "\$x_iy_i^m\$\t\&\t\$|x_i^m|\$\t\&\t\$|x_i^m|\\Delta y_i\$\\\\\n \\hline\n\\hline\n"
+		inicio_b_b : "\$y_ix_i^m\$\t\&\t\$|x_i^m|\$\t\&\t\$|x_i^m|\\Delta y_i\$\\\\\n \\hline\n\\hline\n"
 			};
 
 
@@ -350,11 +372,17 @@
 			x_iUm = Math.pow(x_i, mValue);
 
 			if(isNaN(x_i) || isNaN(y_i) || isNaN(dy_i)){
+				//Clean values
+				addValueToRow(4,i, "" ); // abs(x_i^m) values
+				addValueToRow(5,i, "" ); // abs(x_i^m) values
+				addValueToRow(6,i, "" ); // x_i^{2m} values
+				addValueToRow(7,i, "" ); // y_i*x_i^m values
+				addValueToRow(8,i, "" ); // abs(x_i^m)*(Delta)y_i values
 			}else{
 				addValueToRow(4,i, redondear(x_iUm)	); // x_i^m values
 				addValueToRow(5,i, redondear(Math.abs(x_iUm)) ); // abs(x_i^m) values
 				addValueToRow(6,i, redondear(x_iUm*x_iUm) ); // x_i^{2m} values
-				addValueToRow(7,i, redondear(x_i*Math.pow(y_i,mValue)) ); // x_i*y_i^m values
+				addValueToRow(7,i, redondear(y_i*Math.pow(x_i,mValue)) ); // y_i*x_i^m values
 				addValueToRow(8,i, redondear(Math.abs(x_iUm)*dy_i) ); // abs(x_i^m)*(Delta)y_i values
 			}
 		}
@@ -362,7 +390,8 @@
 	}
 
 	function setExponent(){
-		mValue=parseFloat(prompt("Valor para el exponente (por defecto, m=1)"));
+		mValue=parseFloat(parseNumber(prompt("Valor para el exponente (por defecto, m=1)")));
+		if(mValue==0){mValue=1;}
 		document.getElementById("footer_info_exp").innerHTML = mValue;
 		document.getElementById("footer_info_ajuste").innerHTML = "ax<sup>"+mValue+"</sup>";
 		computeValues(); // Computar los valores después de cambiar el exponente...
@@ -379,13 +408,13 @@
 		var x_i, y_i, dy_i;
 
 		for(var i = 0; i<table_total_rows; i++){
-			x_i = parseFloat(document.getElementById("c_0_r_"+i).value); //x_i values
-			y_i = parseFloat(document.getElementById("c_1_r_"+i).value); //y_i values
-			dy_i = parseFloat(document.getElementById("c_2_r_"+i).value); //(Delta)y_i values
+			x_i = parseFloat(parseNumber(document.getElementById("c_0_r_"+i).value)); //x_i values
+			y_i = parseFloat(parseNumber(document.getElementById("c_1_r_"+i).value)); //y_i values
+			dy_i = parseFloat(parseNumber(document.getElementById("c_2_r_"+i).value)); //(Delta)y_i values
 			if(isNaN(x_i)){ x_i = "";}
 			if(isNaN(y_i)){ y_i = "";}
 			if(isNaN(dy_i)){ dy_i = "";}
-			TEXTO_COMPLETO+=x_i+"\t\&\r"+y_i+"\t\&\t"+dy_i+"\\\\ \n";
+			TEXTO_COMPLETO+=x_i+"\t\&\t"+y_i+"\t\&\t"+dy_i+"\\\\ \n";
 		}
 		TEXTO_COMPLETO+=LatexTEMPLATE.fin;
 		writeXportTool(TEXTO_COMPLETO);
@@ -427,22 +456,35 @@
 	var ajuste = function(){
 		computeValues(); // Computar los valores antes de ajustar...
 
-		var TEXTO_COMPLETO = "=== RESULTADO DEL AJUSTE ===\n";
+		var TEXTO_COMPLETO = "<div class=\"text_center\"><span class=\"mini_title\">=== RESULTADO DEL AJUSTE ===</span>\n";
 		var a = 0;
 		var a_num = 0;
 		var denom = 0;
 		var da = 0;
 		var da_num = 0;
 
-		var c, d, e;
+		var textoSuma_yixim = "";
+		var textoSuma_ximm = "";
+		var textoSuma_ximdyi = "";
+
+		var c, d, e, numDatos = 0;
 		for(var i = 0; i<table_total_rows; i++){
 			c = parseFloat(document.getElementById("fila_"+i+"_columna_6").innerHTML);
 			d = parseFloat(document.getElementById("fila_"+i+"_columna_7").innerHTML);
 			e = parseFloat(document.getElementById("fila_"+i+"_columna_8").innerHTML);
 			if(!isNaN(c) && !isNaN(d) && !isNaN(e)){
-			a_num+=d;
-			denom+=c;
-			da_num+=e;
+				a_num+=d;
+				denom+=c;
+				da_num+=e;
+				textoSuma_yixim += d;
+				textoSuma_ximm += c;
+				textoSuma_ximdyi += e;
+				numDatos++;
+				if(i<table_total_rows-1){
+					textoSuma_yixim += "+";
+					textoSuma_ximm += "+";
+					textoSuma_ximdyi += "+";
+				}
 			}
 		}
 
@@ -451,8 +493,18 @@
 		document.getElementById("footer_info_a").innerHTML = a;
 		document.getElementById("footer_info_da").innerHTML = da;
 
+		TEXTO_COMPLETO+="Ajuste: : y=ax<sup>"+mValue+"</sup>\n";
+
 		TEXTO_COMPLETO+="a = "+redondear(a)+"\n";
-		TEXTO_COMPLETO+="\&Delta;a = "+da+"\n";
+		TEXTO_COMPLETO+="\&Delta;a = "+da+"\n\n";
+		TEXTO_COMPLETO+="<span class=\"mini_title\">=== SUMA ===</span>\n";
+		TEXTO_COMPLETO+="a = ("+textoSuma_yixim+")/("+textoSuma_ximm+")\n";
+		TEXTO_COMPLETO+="\&Delta;a = ("+textoSuma_ximdyi+")/("+textoSuma_ximm+")\n\n";
+		TEXTO_COMPLETO+="<span class=\"mini_title\">=== LATEX ===</span>\n";
+
+		TEXTO_COMPLETO+="a = \\frac{\\sum_{1}^{"+numDatos+"} "+textoSuma_yixim+"}{\\sum_{1}^{"+numDatos+"} "+textoSuma_ximm+"}\n";
+		TEXTO_COMPLETO+="\&Delta;a = \\frac{\\sum_{1}^{"+numDatos+"} "+textoSuma_ximdyi+"}{\\sum_{1}^{"+numDatos+"} "+textoSuma_ximm+"}\n";
+		TEXTO_COMPLETO+="</div>";
 		writeXportTool(TEXTO_COMPLETO);
 	}
 
@@ -464,18 +516,46 @@
 		var hasta = redondear(parseFloat(parseNumber(prompt("Valor final:"))));
 		var paso = redondear(parseFloat(parseNumber(prompt("Incremento:"))));
 		var x = 0;
-		if(desde>=hasta){ alert("Eso no posible es:/ Valor inicial mayor al final..."); return 0;}
-		for(var i = desde; i<=hasta; i+=paso){
-			if(x>=table_total_rows){
-				addRow();
+		var max_Iteration = 9999;
+
+		if(paso == 0){ alert("Eso no posible es:/ Incremento de cero..."); return 0;}
+		if(desde == hasta){ alert("Eso no posible es:/ Inicial y final iguales..."); return 0;}
+		//De mayor número a menor
+		if(desde>hasta){
+			if(paso<0){ paso = -paso; } // Paso siempre positivo
+
+			for(var i = desde; i>=hasta; i-=paso){
+				if(x>=table_total_rows){
+					addRow();
+				}
+				document.getElementById("c_"+a+"_r_"+x).value=redondear(i);
+				x++;
+
+				if(x>=max_Iteration){return 0;}
 			}
-			document.getElementById("c_"+a+"_r_"+x).value=redondear(i);
-			x++;
 		}
+
+		//De menor número a mayor
+		if(desde<hasta){
+			if(paso<0){ paso = -paso; }
+			for(var i = desde; i<=hasta; i+=paso){
+				if(x>=table_total_rows){
+					addRow();
+				}
+				document.getElementById("c_"+a+"_r_"+x).value=redondear(i);
+				x++;
+
+				if(x>=max_Iteration){return 0;}
+			}
+		}
+
+
+
+
 	}
 
-	var parseNumber = function(number){
-		return number.replace(",", ".");
+	var parseNumber = function(nmber){
+		return nmber.replace(/,/g, ".");
 	}
 
 	var aiudaa = function(){
@@ -494,6 +574,69 @@
 		"seg&uacute;n corresponda e introduzca el valor inicial (en el ejemplo, el 2), el valor final, y el incremento"+
 		"(en el ejemplo, 2).";
 		writeXportTool(TEXTO_COMPLETO);
+
+	}
+
+
+	function grafika(){
+
+		var c=document.createElement("canvas");
+		c.setAttribute("id","graphikaCanvas");
+		c.setAttribute("width","600");
+		c.setAttribute("height","400");
+		var ctx=c.getContext("2d");
+		ctx.beginPath();
+		ctx.fillRect(10,10,1,1);
+		/*ctx.moveTo(0,0);
+		ctx.lineTo(300,150);*/
+		ctx.stroke();
+		document.getElementById("textXportTool").appendChild(c);
+		document.getElementById("XportTool").style.display="block";
+
+	}
+
+	function openData(){
+	}
+
+	function saveData(){
+		var DATA_TO_SAVE = "";
+		var x_i, y_i, dy_i;
+		for(var i = 0; i<table_total_rows; i++){
+			x_i = parseFloat(parseNumber(document.getElementById("c_0_r_"+i).value)); //x_i values
+			y_i = parseFloat(parseNumber(document.getElementById("c_1_r_"+i).value)); //y_i values
+			dy_i = parseFloat(parseNumber(document.getElementById("c_2_r_"+i).value)); //(Delta)y_i values
+			if(isNaN(x_i)){ x_i = "";}
+			if(isNaN(y_i)){ y_i = "";}
+			if(isNaN(dy_i)){ dy_i = "";}
+			DATA_TO_SAVE+=x_i+","+y_i+","+dy_i+"\n";
+		}
+		downloadData(DATA_TO_SAVE);
+	}
+
+	var downloadData = function(data){
+		if(typeof window.Blob != undefined){
+			var blob = new Blob([data], {type: 'text/plain'});
+			var downloadUrl = URL.createObjectURL(blob);
+			var a = document.createElement("a");
+			a.href = downloadUrl;
+			a.download = "datos.txt";
+			document.body.appendChild(a);
+			a.click();
+		}else{
+			alert("Función no soportada por tu navegador...");
+			/**var saveForm = document.createElement("form");
+			saveForm.setAttribute('method',"post");
+			saveForm.setAttribute('_target',"blank");
+			saveForm.setAttribute('action',"save.php");
+
+			var i = document.createElement("input"); //input element, text
+			i.setAttribute('type',"text");
+			i.setAttribute('name',"data");
+			i.setAttribute('value', data);
+
+			saveForm.appendChild(i);
+			saveForm.submit();*/
+		}
 	}
 
 	window.onbeforeunload=function(){
@@ -503,14 +646,16 @@
 	}
 	</script>
 </head>
-<body ">
+<body>
 <div id="XportTool">
 	<div id="textXportTool"></div>
-	<span onClick="closeXportTool();">Cerrar</span>
+	<span class="close" onClick="closeXportTool();">Cerrar</span>
 </div>
 
 <div id="toolBar">
 	<ul>
+		<!---<li><span onClick="openData();" class="pointer">Abrir</span>
+		<li><span onClick="saveData();" class="pointer">Guardar</span>--->
 		<li><span onClick="setExponent();" class="pointer">Cambiar m</span>
 		<li><span onClick="setYError();" class="pointer">Error en y</span>
 
@@ -520,9 +665,10 @@
 			<span onClick="rellenar(2);" class="pointer">&Delta;y_i</span>]
 		<li><span onClick="ajuste();" class="pointer">Ajuste</span>
 
-		<li><span>Exportar a LaTeX:</span>
-			<span onClick="createLatexA();" class="pointer">Datos</span> -
-			<span onClick="createLatexB();" class="pointer">Errores</span>
+		<li><span>Exportar a LaTeX [Tablas:</span>
+				<span onClick="createLatexA();" class="pointer">Datos</span> -
+				<span onClick="createLatexB();" class="pointer">C&aacute;lculos</span>
+			<span>]
 		<li><span onClick="aiudaa();" class="pointer">Ayuda</span>
 	</ul>
 </div>
@@ -536,7 +682,7 @@
 			<td>x<sub>i</sub><sup>m</sup>
 			<td>|x<sub>i</sub><sup>m</sup>|
 			<td>x<sub>i</sub><sup>2m</sup>
-			<td>x<sub>i</sub>y<sub>i</sub><sup>m</sup>
+			<td>y<sub>i</sub>x<sub>i</sub><sup>m</sup>
 			<td>|x<sub>i</sub><sup>m</sup>|&Delta;y<sub>i</sub>
 		</tr>
 
@@ -551,3 +697,4 @@
 Ajuste (y=<span id="footer_info_ajuste">ax<sup>1</sup></span>): [a = <span id="footer_info_a">-</span>, &Delta;a = <span id="footer_info_da">-</span>]</div>
 </body>
 </html>
+
