@@ -1,2 +1,2 @@
 # Errorer
-Basic web based data manager and analysis for Laboratory.
+Basic web based data management and analysis.
